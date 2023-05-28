@@ -2,75 +2,109 @@ public static int fieldsize = 200; //size of one Gridspace
 public static int fieldnumber = 5; //amount of gridspaces
 public int rectx, recty, circlex, circley; //initial positions of the shapes
 
-
+//Objects
 Rectangle rect;
 Grid grid;
 Circle circ;
+Goal [] goalspots = new Goal [4];
+
+//colors
+color rectcolor = #FF0808; //red
+color circcolor = #FAFF00; //yellow
+color goalcolor = #14FF00; //green
+
+//variables
+int goals = 0;
 int pressedkey;
-char goaldir;
-boolean collected = false;
+int goalx, goaly;
+boolean collected;
+int starttime, endtime;
+String time;
    
 void setup() {
   size(1000, 1000); //size of the window (fieldnumber times fieldsize is minimum to show the entire grid) 
   //size(fieldsize*5, fieldsize*5);
   background(0);
+  collected = false;
+  
+  //initiates all goals outside of the Grid. there is probably a better way have unused goals but for now its spaces outside of the Grid
+  goalspots[0] = new Goal (6,6, goalcolor);
+  goalspots[1] = new Goal (6,6, goalcolor);
+  goalspots[2] = new Goal (6,6, goalcolor);
+  goalspots[3] = new Goal (6,6, goalcolor);
   
   //initialize the Grid
   grid = new Grid (fieldnumber);
     
   //initialize the rectangle in the starting position
-  rectx = 2;
-  recty = 2;
+  rectx = floor(random(5));
+  recty = floor(random(5));
   
-  rect = new Rectangle (rectx, recty);
+  //debug override
+  //rectx = 2;
+  //recty = 2;
+  
+  rect = new Rectangle (rectx, recty, rectcolor);
   
   //initialize the circle in a random position
+  circlex = floor(random(5));
+  circley = floor(random(5));
   
-  //choose a side side on witch the circle is created
-  //TODO: Corners are twice as likely to be chosen and habe a "correct" opposite side
-  switch(floor(random(4))) {
-      case 0: 
-        //North
-        circlex = floor(random(5));
-        circley = 0;
-        goaldir = 'S';
-        println ("Circle created North");
-        break;
-      case 1: 
-        //South
-        circlex = floor(random(5));
-        circley = 4;
-        goaldir = 'N';
-        println ("Circle created South");
-        break;
-      case 2: 
-        //West
-        circlex = 0;
-        circley = floor(random(5));
-        goaldir = 'E';
-        println ("Circle created West");
-        break;
-      case 3: 
-        //East
-        circlex = 4;
-        circley = floor(random(5));
-        goaldir = 'W';
-        println ("Circle created East");
-        break;
-      default:
-      println ("could not create circle coordinates");
-        break;
+  //debug override
+  //circlex = 2;
+  //circley = 2;
+  
+   circ = new Circle (circlex, circley, circcolor);
+  
+  //determine the goalspace
+  if (abs(circlex-2)==abs(circley-2)){
+    if (circlex == 2) {
+      //special case circle is in the Middle
+      goals = 4;
+      goalspots[0].setpos(0,2);
+      goalspots[1].setpos(2,0);
+      goalspots[2].setpos(2,4);
+      goalspots[3].setpos(4,2);
     }
-    
-    print ("Goal is " + goaldir);
-    circ = new Circle (circlex, circley);
-    
-    //TODO: Start Timer
+    else {
+      //if the circle is on a diagonal there are two goal spaces
+      goals = 2;
+      //Projection on the x-Axis
+      goaly = circley;
+      goalx = circlex>2 ? 0 : 4;
+      goalspots[0].setpos(goalx,goaly);
+      //Projektion on the y-Axis
+      goalx = circlex;
+      goaly = circley>2 ? 0 : 4;
+      goalspots[1].setpos(goalx,goaly);
+    }
+  }
+  //otherwise there is only one goal space
+  else{
+    goals = 1;
+    if (abs(circlex-2)>abs(circley-2)) {
+      //x ist die dominante Seite
+      goaly = circley;
+      goalx = circlex>2 ? 0 : 4;
+      goalspots[0].setpos(goalx,goaly);
+      
+    } else {
+      //y ist die dominante Seite
+      goalx = circlex;
+      goaly = circley>2 ? 0 : 4;
+      goalspots[0].setpos(goalx,goaly);
+    }
+  }
+    starttime = millis();
+    time = "Starttime: " + day() + '.' + month() + '.' + year() + ' ' + hour() + ':' + minute() + ':' + second();
+    println (time);
     
 }
 
 void draw(){
   background(0);
+  //show the goal space for testing purposes
+  showgoal();
   
   //draw the Grid
   grid.display ();
@@ -83,12 +117,19 @@ void draw(){
 }
 
 void keyPressed() {
-  //If a key is pressed move the Rectangle and check the Location
   //This will be replaced by motion controls at some point
+  
+  if (keyCode == ' '){
+    //Spacebar for collection
+    collect();
+  }
+    
+  //If a key is pressed move the Rectangle and check the Location
   moveandcheck(keyCode);
 }
 
-void moveandcheck(int pressedkey){
+private void moveandcheck(int pressedkey){
+
   //move the rectangle
   rect.move(pressedkey);
   
@@ -97,41 +138,42 @@ void moveandcheck(int pressedkey){
     //yes: move the circle too
     circ.move(pressedkey);
     
-    //check if the goal is reached
-    switch(goaldir) {
-      case 'S': 
-        //North to South
-        if (rect.gety() == 4){
-          println("you win");
-        }
-        break;
-      case 'N': 
-        //South to North
-        if (rect.gety() == 0){
-          println("you win");
-        }
-        break;
-      case 'E': 
-        //West to East
-        if (rect.getx() == 4){
-          println("you win");
-        }
-        break;
-      case 'W': 
-        //East to West
-        if (rect.getx() == 0){
-          println("you win");
-        }
-        break;
-      default:
-      println ("could not find goaldirection");
-        break;
+    //check if you reached a goal space
+    for (int i = 0; i<goals; i++){
+      if (goalspots[i].getx() == rect.getx() && goalspots[i].gety() ==rect.gety()){
+        println("you win");
+        resetgame();
+      }
     }
   }
-  else{
-    //no: check if rectangle and circle share a space
-    if (rect.getx() == circlex && rect.gety() == circley){
+}
+
+private void collect (){
+  //collect the Circle if it is on the same space as the rectangle
+  if (rect.getx() == circlex && rect.gety() == circley){
       collected = true;
+      println ("Circle collected");
     }
-  }
+    else {
+      println ("no Circle to collect");
+    }
+}
+
+private void showgoal(){
+  //display the 4 goal spaces
+  goalspots[0].display();
+  goalspots[1].display();
+  goalspots[2].display();
+  goalspots[3].display();
+}
+
+private void resetgame(){
+  //take the time for complettion and reset the game
+  time = "Endtime: " + day() + '.' + month() + '.' + year() + ' ' + hour() + ':' + minute() + ':' + second();
+  println (time);
+  endtime = millis() - starttime;
+  println("Time to solve: " + endtime + " milliseconds");
+  
+  //TODO: write Time-data to file
+  setup();
 }

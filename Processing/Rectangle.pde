@@ -1,28 +1,33 @@
 class Rectangle {
  
   int x, y;
-  int dir;
+  color colorhex;
   
   // Constructor
-  public Rectangle(int xpos, int ypos) {
+  public Rectangle(int xpos, int ypos, color hexcolor) {
     x = xpos;
     y = ypos;
+    colorhex = hexcolor;
   }
   
   void move (int dir) {
     //move in the direction of the given keycode
     switch(dir) {
       case UP: 
-        y = y-1;
+        y = y<1 ? 0 : y-1;
+        println ("moving up");
         break;
       case DOWN: 
-        y = y+1;
+        y = y>3 ? 4 : y+1;
+        println ("moving down");
         break;
       case RIGHT: 
-        x = x+1;
+        x = x>3 ? 4 : x+1;
+        println ("moving right");
         break;
       case LEFT: 
-        x = x-1;
+        x = x<1 ? 0 : x-1;
+        println ("moving left");
         break;
       default:
         break;
@@ -31,7 +36,7 @@ class Rectangle {
   
   void display() {
     noStroke();
-    fill(#FF0808);
+    fill(colorhex);
     rect (x*fieldsize+50, y*fieldsize+50, fieldsize-100, fieldsize-100);
   }
   
@@ -42,5 +47,4 @@ class Rectangle {
   int gety(){
     return y;
   }
-  
 }
