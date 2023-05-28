@@ -4,11 +4,9 @@ class Grid {
   
   public Grid (int size) {
     spaces = size;
-    
   }
   
   void display(){
-   
     stroke(126);
     strokeWeight(10);
     
@@ -17,7 +15,5 @@ class Grid {
     line(0, i*fieldsize, 1000, i*fieldsize);
     line(i*fieldsize, 0, i*fieldsize, 1000);
     }
-    
   }
-  
 }
