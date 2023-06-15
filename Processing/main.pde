@@ -1,6 +1,7 @@
-public static int fieldsize = 200; //size of one Gridspace
+public int fieldsize = 0; //size of one Gridspace. Will be determined during runtime
 public static int fieldnumber = 5; //amount of gridspaces
 public int rectx, recty, circlex, circley; //initial positions of the shapes
+public static int offset = 0; //global offset on the x axix
 
 //Objects
 Rectangle rect;
@@ -22,8 +23,12 @@ int starttime, endtime;
 String time;
    
 void setup() {
-  size(1000, 1000); //size of the window (fieldnumber times fieldsize is minimum to show the entire grid) 
-  //size(fieldsize*5, fieldsize*5);
+  //Determine the dimensions of the background
+  fullScreen();
+  fieldsize = displayHeight/5;
+  //offset the game to the middle of the screen
+  offset = (displayHeight-displayWidth)/2;
+  
   background(0);
   collected = false;
   
@@ -109,15 +114,18 @@ void draw(){
   //draw the Grid
   grid.display ();
    
-  //draw the rectangle
-  rect.display();
-  
-  //draw the circle
-  circ.display();
+   if (collected){
+    //draw the cirlce ofer the rectangle
+    rect.display();
+    circ.display();
+   }else{
+    //draw the rectangle ofer the circle
+    circ.display();
+    rect.display();
+   }
 }
 
 void keyPressed() {
-  //This will be replaced by motion controls at some point
   
   if (keyCode == ' '){
     //Spacebar for collection
