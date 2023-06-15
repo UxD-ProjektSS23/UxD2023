@@ -13,7 +13,7 @@ class Goal {
   void display() {
     noStroke();
     fill(colorhex);
-    rect (x*fieldsize, y*fieldsize, fieldsize, fieldsize);
+    rect (x*fieldsize-offset, y*fieldsize, fieldsize, fieldsize);
   }
   
   public int getx(){

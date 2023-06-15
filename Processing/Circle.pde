@@ -13,7 +13,7 @@ class Circle {
   void display() {
     noStroke();
     fill(colorhex);
-    circle(x*fieldsize+100, y*fieldsize+100, 100);
+    circle(x*fieldsize+fieldsize/2-offset, y*fieldsize+fieldsize/2, fieldsize/2);
   }
   
   void move (int dir) {

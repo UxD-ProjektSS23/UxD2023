@@ -12,8 +12,8 @@ class Grid {
     
     //draw enough lines to make the required spaces in the grid
     for (int i = 0; i < spaces+1; i++) {
-    line(0, i*fieldsize, 1000, i*fieldsize);
-    line(i*fieldsize, 0, i*fieldsize, 1000);
+    line(0-offset, i*fieldsize, displayHeight-offset, i*fieldsize);
+    line(i*fieldsize-offset, 0, i*fieldsize-offset, displayHeight);
     }
   }
 }
