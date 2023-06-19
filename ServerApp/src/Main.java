@@ -1,13 +1,25 @@
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Main {
+
+    private static GUI gui;
+    public static Socket clientSocket;
+
     public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            gui = new GUI();
+            gui.setVisible(true);
+        });
+
         try {
             ServerSocket serverSocket = new ServerSocket(5000); // Specify the port number
 
@@ -15,7 +27,7 @@ public class Main {
             System.out.println("Server IP address: " + InetAddress.getLocalHost().getHostAddress());
 
             while (true) {
-                Socket clientSocket = serverSocket.accept(); // Accept incoming connections
+                clientSocket = serverSocket.accept(); // Accept incoming connections
                 System.out.println("New client connected: " + clientSocket.getInetAddress().getHostAddress());
 
                 // Handle client communication in a separate thread
@@ -43,6 +55,10 @@ public class Main {
         }
     }
 
+    /**
+     * Processes a Client Message to decide further actions
+     * @param message the message to be processed
+     */
     public static void processMessage(String message){
         //Message structure Type:Message
 
@@ -69,6 +85,20 @@ public class Main {
                         break;
                 }
                 break;
+            case "Update":
+                //The Type Update gives updates to the Gui
+                //Format: Update:type number
+                String[] updateparts = message.split(" ");
+                switch(updateparts[0]){
+                    case "Sensitivity":
+                        gui.setSensitivityfield(updateparts[1]);
+                        break;
+                    case "Pause":
+                        gui.setPausefield(updateparts[1]);
+                        break;
+                }
+
+                break;
             case "Log":
                 //The Type Log means the received data is Logging data
                 System.out.println("Received Log from client: " + message);
@@ -78,6 +108,10 @@ public class Main {
         }
     }
 
+    /**
+     * Virtually presses a Key on the Keyboard
+     * @param key the Keycode of the Button that is supposed to be pressed
+     */
     public static void keyPress(int key){
         try {
             // Create an instance of Robot
@@ -89,6 +123,17 @@ public class Main {
                 robot.keyRelease(key);
 
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void sendMessageToClient(String message) {
+        // Retrieve the socket for the target Android client
+        try {
+            // Create a PrintWriter to send the message
+            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+            out.println(message);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

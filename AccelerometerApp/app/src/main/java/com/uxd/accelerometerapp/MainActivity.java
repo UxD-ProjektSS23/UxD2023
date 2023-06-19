@@ -9,6 +9,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
@@ -31,8 +32,13 @@ public class MainActivity extends AppCompatActivity {
     private int pause = 1000;
     private boolean connected = false;
 
+    private static final String TAG = "Logging Example";
+
+    View rootView;
+
     // Server Connection
-    private static String hostip = "192.168.178.119";
+    private static String hostip;
+    //private static String hostip = "192.168.178.119"; //for testing purposes if the ip is static
     private static int port = 5000;
     public Socket socket;
     public PrintWriter outputwriter;
@@ -51,6 +57,9 @@ public class MainActivity extends AppCompatActivity {
         pauseLabel = findViewById(R.id.pauseLabel);
         connectionLabel = findViewById(R.id.connectionLabel);
         ipLabel = findViewById(R.id.iptext);
+        ipLabel.setText(hostip);
+
+        rootView = findViewById(android.R.id.content);
     }
 
     private final SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -68,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
          */
         @Override
         public void onSensorChanged(SensorEvent event) {
-
 
             //get live Accelerometer Values
             //x+ Right side x- Left side
@@ -126,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
                 //write the direction in the Label
                 directionLabel.setText(direction);
 
-                sendDataToServer(direction);
+                sendDataToServer("Message",direction);
 
                 //pause the Listener for 1 Second
                 isPaused = true;
@@ -138,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("MainActivity", "Max x: " + maxX + " | " + minX);
                         Log.d("MainActivity", "Max y: " + maxY + " | " + minY);
                         Log.d("MainActivity", "Max z: " + maxZ + " | " + minZ);
-                        //TODO: send log to server
+                        //TODO: maybe send log to server
                         //reset the values
                         maxX = 0.0f;
                         maxY = 0.0f;
@@ -196,20 +204,30 @@ public class MainActivity extends AppCompatActivity {
                 // Create a PrintWriter to send data
                 outputwriter = new PrintWriter(socket.getOutputStream(), true);
                 //outputwriter.println("Android App connected");
+                inputwriter = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                //TODO: Update UI Element to show connection status
                 connected = true;
                 publishProgress("Connected");
 
-                //TODO: handle incoming data
 
-                // Create a BufferedReader to receive data
-                inputwriter = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                String receivedMessage = inputwriter.readLine();
-                // Process the received message
+                // Loop to continuously receive messages
+                String receivedMessage;
+                while (connected && (receivedMessage = inputwriter.readLine()) != null) {
+                    Log.d(TAG, "Received message: " + receivedMessage);
+                    processmessage(receivedMessage);
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                // Make sure to close the socket and clean up resources
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
             return null;
         }
@@ -224,15 +242,14 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Send a String to the Server
-     * TODO: double check if this means we open a new Thread for every message and never stop them
      * @param data the string that needs to be send to the Server
      */
-    private void sendDataToServer(final String data) {
+    private void sendDataToServer(final String type,final String data) {
         if (connected) {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    outputwriter.println("Message:" + data);
+                    outputwriter.println(type + ":" + data);
                     Log.d("MainActivity", "Sent message to server: " + data);
                 }
             });
@@ -240,6 +257,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Processes a Message to decide the instruction
+     * @param message the message received from the Server
+     */
+    public void processmessage(String message) {
+        runOnUiThread(() -> {
+            switch (message) {
+                case "sens +":
+                    highersensitivity(findViewById(android.R.id.content));
+                    break;
+                case "sens -":
+                    lowersensitivity(findViewById(android.R.id.content));
+                    break;
+                case "pause +":
+                    higherpause(findViewById(android.R.id.content));
+                    break;
+                case "pause -":
+                    lowerpause(findViewById(android.R.id.content));
+                    break;
+                default:
+                    Log.d(TAG,"unknown instruction: " + message);
+                    break;
+            }
+        });
+    }
+
+    /**
+     * Sends a Log to the Server
+     * @param data the date that needs to be Logged
+     */
     private void sendLogToServer(final String data) {
         if (connected) {
             Thread thread = new Thread(new Runnable() {
@@ -261,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
         if (sensitivity > 1){
             sensitivity--;
             sensitivityLabel.setText("Sensitivity: " + sensitivity + "m/s²");
+            sendDataToServer("Update","Sensitivity "+sensitivity);
         }
     }
 
@@ -271,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
     public void highersensitivity(View v) {
         sensitivity++;
         sensitivityLabel.setText("Sensitivity: " + sensitivity + "m/s²");
+        sendDataToServer("Update","Sensitivity "+sensitivity);
     }
 
     /**
@@ -281,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
     public void setsensitivity(View v, int newsens) {
         sensitivity = newsens;
         sensitivityLabel.setText("Sensitivity: " + sensitivity + "m/s²");
+        sendDataToServer("Update","Sensitivity "+sensitivity);
     }
 
     /**
@@ -291,6 +341,7 @@ public class MainActivity extends AppCompatActivity {
         if (pause > 100){
             pause = pause - 100;
             pauseLabel.setText("Pause: " + pause + "ms");
+            sendDataToServer("Update","Pause "+pause);
         }
     }
 
@@ -301,8 +352,7 @@ public class MainActivity extends AppCompatActivity {
     public void higherpause(View v) {
         pause = pause + 100;
         pauseLabel.setText("Pause: " + pause + "ms");
-        String dataToSend = "Your data here";
-        sendDataToServer(dataToSend);
+        sendDataToServer("Update","Pause "+pause);
     }
 
     /**
