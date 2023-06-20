@@ -1,14 +1,16 @@
 class Grid {
   
   int spaces;
+  color colorhex;
   
-  public Grid (int size) {
+  public Grid (int size, color hexcolor) {
     spaces = size;
+    colorhex = hexcolor;
   }
   
   void display(){
-    stroke(126);
-    strokeWeight(10);
+    stroke(colorhex);
+    strokeWeight(20);
     
     //draw enough lines to make the required spaces in the grid
     for (int i = 0; i < spaces+1; i++) {

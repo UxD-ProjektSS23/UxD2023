@@ -11,6 +11,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -22,6 +23,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class MainActivity extends AppCompatActivity {
+
+    private PowerManager.WakeLock wakeLock;
 
     private SensorManager sensorManager;
     private TextView accelerometerLabel, directionLabel;
@@ -37,8 +40,8 @@ public class MainActivity extends AppCompatActivity {
     View rootView;
 
     // Server Connection
-    private static String hostip;
-    //private static String hostip = "192.168.178.119"; //for testing purposes if the ip is static
+    //private static String hostip;
+    private static String hostip = "192.168.178.119"; //for testing purposes if the ip is static
     private static int port = 5000;
     public Socket socket;
     public PrintWriter outputwriter;
@@ -60,6 +63,12 @@ public class MainActivity extends AppCompatActivity {
         ipLabel.setText(hostip);
 
         rootView = findViewById(android.R.id.content);
+
+        //set a wake lock so the the Phone can't get into stand-by
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        //TODO:SCREEN_DIM_WAKE_LOCK keeps the screen on but PARTIAL did not work correctly. There might be a better way
+        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "MyApp:WakeLockTag");
+        wakeLock.acquire();
     }
 
     private final SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -88,23 +97,14 @@ public class MainActivity extends AppCompatActivity {
 
             //get the max values to help calibrate the sensitivity
 
-            if (x > maxX) {
-                maxX = x;
-            } else if (x < minX) {
-                minX = x;
-            }
+            maxX = Math.max(maxX, x);
+            minX = Math.min(minX, x);
 
-            if (y > maxY) {
-                maxY = y;
-            } else if (y < minY) {
-                minY = y;
-            }
+            maxY = Math.max(maxY, y);
+            minY = Math.min(minY, y);
 
-            if (z > maxZ) {
-                maxZ = z;
-            } else if (z < minZ) {
-                minZ = z;
-            }
+            maxZ = Math.max(maxZ, z);
+            minZ = Math.min(minZ, z);
 
             //Show Live Accelerometer Data
             String data = "X: " + x + "\nY: " + y + "\nZ: " + z;
@@ -148,12 +148,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("MainActivity", "Max z: " + maxZ + " | " + minZ);
                         //TODO: maybe send log to server
                         //reset the values
-                        maxX = 0.0f;
-                        maxY = 0.0f;
-                        maxZ = 0.0f;
-                        minX = 0.0f;
-                        minY = 0.0f;
-                        minZ = 0.0f;
+                        maxX=maxY=maxZ=minX=minY=minZ = 0.0f;
 
                         isPaused = false; // Resume sensor events after the pause
                     }
@@ -170,16 +165,36 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        //release the wake lock
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+
+        //Stop the Sensorlistener
         sensorManager.unregisterListener(sensorEventListener);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        //reacquire the wake lock
+        if (wakeLock != null && !wakeLock.isHeld()) {
+            wakeLock.acquire();
+        }
 
-        //Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        //Restart the Sensorlistener
         Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onDestroy() {
+        //Permanently stop the wake lock
+        super.onDestroy();
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            wakeLock = null;
+        }
     }
 
     /**
