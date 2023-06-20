@@ -1,18 +1,22 @@
-public int fieldsize = 0; //size of one Gridspace. Will be determined during runtime
-public static int fieldnumber = 5; //amount of gridspaces
-public int rectx, recty, circlex, circley; //initial positions of the shapes
-public static int offset = 0; //global offset on the x axix
+private static int fieldsize = 0; //size of one Gridspace. Will be determined during runtime
+private static int fieldnumber = 5; //amount of gridspaces
+private static int offset = 0; //global offset on the x axix
+private int rectx, recty, circlex, circley; //initial positions of the shapes
 
 //Objects
-Rectangle rect;
-Grid grid;
-Circle circ;
-Goal [] goalspots = new Goal [4];
+private Rectangle rect;
+private Grid grid;
+private Circle circ;
+private Goal [] goalspots = new Goal [4];
+
+static int monitorIndex = 1; //choose the Display the scetch is drawn on
 
 //colors
-color rectcolor = #FF0808; //red
-color circcolor = #FAFF00; //yellow
-color goalcolor = #14FF00; //green
+static color rectcolor = #FF0000; //red
+static color circcolor = #FFFF00; //yellow
+static color goalcolor = #00FF00; //green
+static color backgroundcolor = #FFFFFF; //white
+static color gridcolor = #000000; //black
 
 //variables
 int goals = 0;
@@ -21,15 +25,18 @@ int goalx, goaly;
 boolean collected;
 int starttime, endtime;
 String time;
+boolean drawgoals = false; // if true shwos goals for debug purposes
    
 void setup() {
   //Determine the dimensions of the background
-  fullScreen();
+  fullScreen(monitorIndex);
   fieldsize = displayHeight/5;
   //offset the game to the middle of the screen
   offset = (displayHeight-displayWidth)/2;
   
   background(0);
+  
+  //set or reset the collected varaible
   collected = false;
   
   //initiates all goals outside of the Grid. there is probably a better way have unused goals but for now its spaces outside of the Grid
@@ -39,7 +46,7 @@ void setup() {
   goalspots[3] = new Goal (6,6, goalcolor);
   
   //initialize the Grid
-  grid = new Grid (fieldnumber);
+  grid = new Grid (fieldnumber, gridcolor);
     
   //initialize the rectangle in the starting position
   rectx = floor(random(5));
@@ -107,10 +114,11 @@ void setup() {
 }
 
 void draw(){
-  background(0);
+  background(backgroundcolor);
   //show the goal space for testing purposes
-  showgoal();
-  
+  if (drawgoals){
+    showgoal();
+  }
   //draw the Grid
   grid.display ();
    
@@ -127,13 +135,20 @@ void draw(){
 
 void keyPressed() {
   
-  if (keyCode == ' '){
+  switch (keyCode){
+    case ' ':
     //Spacebar for collection
     collect();
+    break;
+    case  'G':
+    //G to draw goals for debug Purposes
+    drawgoals = !drawgoals;
+    break;
+    default:
+    //If none of the special cases check for movement
+    moveandcheck(keyCode);
+    break;
   }
-    
-  //If a key is pressed move the Rectangle and check the Location
-  moveandcheck(keyCode);
 }
 
 private void moveandcheck(int pressedkey){
@@ -183,5 +198,8 @@ private void resetgame(){
   println("Time to solve: " + endtime + " milliseconds");
   
   //TODO: write Time-data to file
+  
+  //redo the setup step
+  //TODO: double check if this is a good way of doing this
   setup();
 }
