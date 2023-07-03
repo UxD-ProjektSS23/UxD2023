@@ -37,7 +37,7 @@ class Rectangle {
   void display() {
     noStroke();
     fill(colorhex);
-    rect (x*fieldsize+50-offset, y*fieldsize+50, fieldsize-100, fieldsize-100);
+    rect (fieldsize * (x + 0.2) - offset, fieldsize * (y + 0.2), fieldsize * 0.6, fieldsize * 0.6);
   }
   
   int getx(){
