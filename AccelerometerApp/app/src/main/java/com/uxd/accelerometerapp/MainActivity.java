@@ -3,13 +3,14 @@ package com.uxd.accelerometerapp;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.util.Log;
@@ -25,16 +26,19 @@ import java.net.Socket;
 public class MainActivity extends AppCompatActivity {
 
     private PowerManager.WakeLock wakeLock;
+    private WifiManager.WifiLock wifiLock;
 
     private SensorManager sensorManager;
     private TextView accelerometerLabel, directionLabel;
     private TextView sensitivityLabel, pauseLabel;
     private TextView connectionLabel;
     private TextView ipLabel;
-    private int sensitivity = 4;
-    private int pause = 1000;
+    private int sensitivity = 3;
+    private int pause = 700;
     private boolean connected = false;
 
+    private static final String CHANNEL_ID = "MyForegroundServiceChannel";
+    private static final int NOTIFICATION_ID = 1; // Or any other unique integer value
     private static final String TAG = "Logging Example";
 
     View rootView;
@@ -64,11 +68,23 @@ public class MainActivity extends AppCompatActivity {
 
         rootView = findViewById(android.R.id.content);
 
-        //set a wake lock so the the Phone can't get into stand-by
+        //set a wake lock
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        //TODO:SCREEN_DIM_WAKE_LOCK keeps the screen on but PARTIAL did not work correctly. There might be a better way
-        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "MyApp:WakeLockTag");
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp:WakeLockTag");
         wakeLock.acquire();
+
+        //set a Wifi lock
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "MyApp:WifiLockTag");
+        wifiLock.acquire();
+
+        //get a Listener for the Accelerometer Sensor
+        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+        //Start the Foreground Service
+        Intent serviceIntent = new Intent(this, ForegroundService.class);
+        startService(serviceIntent);
     }
 
     private final SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -143,10 +159,17 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
 
                         //Log the max values for sensitivity calibrations
-                        Log.d("MainActivity", "Max x: " + maxX + " | " + minX);
-                        Log.d("MainActivity", "Max y: " + maxY + " | " + minY);
-                        Log.d("MainActivity", "Max z: " + maxZ + " | " + minZ);
-                        //TODO: maybe send log to server
+                        String logx ="Max x: " + maxX + " | " + minX;
+                        String logy ="Max y: " + maxY + " | " + minY;
+                        String logz ="Max z: " + maxZ + " | " + minZ;
+                        Log.d("MainActivity", logx);
+                        Log.d("MainActivity", logy);
+                        Log.d("MainActivity", logz);
+
+                        //Send the Logs to the Server
+                        //sendLogToServer(logx);
+                        //sendLogToServer(logy);
+                        //sendLogToServer(logz);
                         //reset the values
                         maxX=maxY=maxZ=minX=minY=minZ = 0.0f;
 
@@ -165,26 +188,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        //release the wake lock
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
-
-        //Stop the Sensorlistener
-        sensorManager.unregisterListener(sensorEventListener);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //reacquire the wake lock
-        if (wakeLock != null && !wakeLock.isHeld()) {
-            wakeLock.acquire();
-        }
 
-        //Restart the Sensorlistener
-        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -195,6 +204,11 @@ public class MainActivity extends AppCompatActivity {
             wakeLock.release();
             wakeLock = null;
         }
+        if (wifiLock != null && wifiLock.isHeld()) {
+            wifiLock.release();
+            wifiLock = null;
+        }
+        stopService(new Intent(this, ForegroundService.class));
     }
 
     /**
