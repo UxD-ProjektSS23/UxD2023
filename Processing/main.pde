@@ -12,11 +12,11 @@ private Goal [] goalspots = new Goal [4];
 static int monitorIndex = 1; //choose the Display the scetch is drawn on
 
 //colors
-static color rectcolor = #FF0000; //red
-static color circcolor = #FFFF00; //yellow
+static color rectcolor = #FFFF00; //yellow
+static color circcolor = #FF0000; //red
 static color goalcolor = #00FF00; //green
-static color backgroundcolor = #FFFFFF; //white
-static color gridcolor = #000000; //black
+static color backgroundcolor = #000000; //black
+static color gridcolor = #FFFFFF; //white
 
 //variables
 int goals = 0;

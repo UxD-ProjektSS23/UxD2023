@@ -10,7 +10,7 @@ class Grid {
   
   void display(){
     stroke(colorhex);
-    strokeWeight(20);
+    strokeWeight(5);
     
     //draw enough lines to make the required spaces in the grid
     for (int i = 0; i < spaces+1; i++) {
