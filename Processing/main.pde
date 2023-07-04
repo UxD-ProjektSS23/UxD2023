@@ -23,8 +23,6 @@ int goals = 0;
 int pressedkey;
 int goalx, goaly;
 boolean collected;
-int starttime, endtime;
-String time;
 boolean drawgoals = false; // if true shwos goals for debug purposes
    
 void setup() {
@@ -107,9 +105,6 @@ void setup() {
       goalspots[0].setpos(goalx,goaly);
     }
   }
-    starttime = millis();
-    time = "Starttime: " + day() + '.' + month() + '.' + year() + ' ' + hour() + ':' + minute() + ':' + second();
-    println (time);
     
 }
 
@@ -144,6 +139,9 @@ void keyPressed() {
     //G to draw goals for debug Purposes
     drawgoals = !drawgoals;
     break;
+    case  'R':
+    //R to reset the game
+    setup();
     default:
     //If none of the special cases check for movement
     moveandcheck(keyCode);
@@ -191,14 +189,6 @@ private void showgoal(){
 }
 
 private void resetgame(){
-  //take the time for complettion and reset the game
-  time = "Endtime: " + day() + '.' + month() + '.' + year() + ' ' + hour() + ':' + minute() + ':' + second();
-  println (time);
-  endtime = millis() - starttime;
-  println("Time to solve: " + endtime + " milliseconds");
-  
-  //TODO: write Time-data to file
-  
   //redo the setup step
   //TODO: double check if this is a good way of doing this
   setup();
